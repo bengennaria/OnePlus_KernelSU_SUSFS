@@ -857,12 +857,28 @@ runs:
         retry_clone "https://github.com/WildKernels/kernel_patches.git" "main" "1"
         
         if [ "${{ env.OP_SUSFS }}" = true ]; then
-          echo "Using SUSFS branch/commit: $SUSFS_BRANCH"
-          if ! retry_fetch_archive "https://gitlab.com/simonpunk/susfs4ksu.git" "$SUSFS_BRANCH"; then
-            echo "::error::Failed to fetch SUSFS archive after multiple attempts"
-            exit 1
-          fi
-          echo "SUSFS_COMMIT_SHA=$SUSFS_BRANCH" >> $GITHUB_ENV
+            echo "Using SUSFS branch/commit: $SUSFS_BRANCH"
+
+            rm -rf "$SUSFS_FOLDER"
+
+            git clone \
+              --filter=blob:none \
+              --no-checkout \
+              https://gitlab.com/simonpunk/susfs4ksu.git \
+              "$SUSFS_FOLDER"
+
+            cd "$SUSFS_FOLDER"
+
+            git fetch --depth=1 origin "$SUSFS_BRANCH" || true
+
+            git checkout "$SUSFS_BRANCH"
+            
+            SUSFS_ACTUAL_SHA="$(git rev-parse HEAD)"
+            
+            echo "SUSFS checked out at: $SUSFS_ACTUAL_SHA"
+            echo "SUSFS_COMMIT_SHA=$SUSFS_ACTUAL_SHA" >> "$GITHUB_ENV"
+            
+            cd "$GITHUB_WORKSPACE"
         fi
         echo "✅ Dependencies cloned"
         echo "::endgroup::"
